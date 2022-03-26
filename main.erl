@@ -22,7 +22,13 @@
 empty_tree() ->
     receive
         {is_empty, PID} -> PID ! true, empty_tree();
-        {get, _, PID} -> PID ! nothing, empty_tree()
+        {get, _, PID} -> PID ! nothing, empty_tree();
+        {put, K, V, PID} -> PID ! done, spawn(?MODULE, binary_tree, [K, V, empty_tree(), empty_tree()])
+    end.
+
+binary_tree(KK, VV, L, R) ->
+    receive
+        {put, K, V, PID} -> todo
     end.
 
 empty() ->
