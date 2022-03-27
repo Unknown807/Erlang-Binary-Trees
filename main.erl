@@ -22,11 +22,10 @@ binary_tree(KK, VV, L, R) ->
                 true -> PID ! {just, VV}, Repeat() %% found K
             end;
         {put, K, V, PID} ->
-            PID ! done,
             if
                 K < KK -> L ! {put, K, V, PID}, Repeat(); %% go left
                 K > KK -> R ! {put, K, V, PID}, Repeat(); %% go right
-                true -> binary_tree(K, V, L, R) %% replace node K/V
+                true -> PID ! done, binary_tree(K, V, L, R) %% replace node K/V
             end;
         {fold, FE, FB, PID} ->
             L ! {fold, FE, FB, self()},
@@ -43,15 +42,18 @@ empty() -> spawn(?MODULE, empty_tree, []).
 
 get(T, K) ->
     T ! {get, K, self()},
-    receive RESP -> RESP end.
+    receive 
+        {just, RESP} -> {just, RESP} ;
+        nothing -> nothing
+    end.
 
 put(T, K, V) ->
     T ! {put, K, V, self()},
-    receive RESP -> RESP end.
+    receive done -> done end.
 
 is_empty(T) ->
     T ! {is_empty, self()},
-    receive RESP -> RESP end.
+    receive BOOL -> BOOL end.
 
 fold(T, FE, FB) ->
     T ! {fold, FE, FB, self()},
@@ -61,3 +63,6 @@ fold(T, FE, FB) ->
 
 %% X=main:empty(), main:put(X,d,5), main:put(X,b,17), main:put(X,h,19), main:put(X,c,12).
 %% main:fold(X,0,fun(L,_,V,R)->L+V+R end).
+%% main:get(X, h).
+%% main:get(X, z).
+%% main:is_empty(X).
