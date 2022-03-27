@@ -23,7 +23,10 @@ empty_tree() ->
     receive
         {is_empty, PID} -> PID ! true, empty_tree();
         {get, _, PID} -> PID ! nothing, empty_tree();
-        {put, K, V, PID} -> PID ! done, binary_tree(K, V, empty(), empty())
+        {put, K, V, PID} -> PID ! done, binary_tree(K, V, empty(), empty());
+        {fold, FE, _, PID} ->
+            PID ! {folded, FE, self()},
+            empty_tree()
     end.
 
 binary_tree(KK, VV, L, R) ->
@@ -45,33 +48,67 @@ binary_tree(KK, VV, L, R) ->
                 K < KK -> L ! {put, K, V, PID}, Repeat(); %% go left
                 K > KK -> R ! {put, K, V, PID}, Repeat(); %% go right
                 true -> binary_tree(K, V, L, R) %% replace node K/V
-            end
+            end;
 
+        {fold, FE, FB, PID} ->
+            L ! {fold, FE, FB, self()},
+            LV = receive {folded, RES, _} -> RES end,
+
+            R ! {fold, FE, FB, self()},
+            RV = receive {folded, RES2, _} -> RES2 end,
+            
+            PID ! {folded, FB(LV, KK, VV, RV), self()},
+
+            binary_tree(KK, VV, L, R)
     end.
 
 empty() ->
     spawn(?MODULE, empty_tree, []).
 
-test1(PID) ->
+%% Test functions
+
+flush() ->
+    receive
+            X -> erlang:display(X)
+    end.
+
+testTree(X) ->
+    X ! {put, d, 5, self()},
+    flush(),
+    X ! {put, b, 17, self()},
+    flush(),
+    X ! {put, h, 19, self()},
+    flush(),
+    X ! {put, c, 12, self()},
+    flush().
+
+checkempty(PID) ->
     PID ! {is_empty, self()},
     receive
         X -> X
     end.
 
-test2(PID) ->
-    PID ! {put, a, 12, self()},
-    receive
-        X -> X
-    end.
+% test2(PID) ->
+%     PID ! {put, a, 12, self()},
+%     receive
+%         X -> X
+%     end.
 
-test3(PID) ->
-    PID ! {get, a, self()},
-    receive
-        X -> X
-    end.
+% test3(PID) ->
+%     PID ! {get, a, self()},
+%     receive
+%         X -> X
+%     end.
 
-test4(PID) ->
+getb(PID) ->
     PID ! {get, b, self()},
+    receive
+        X -> X
+    end.
+
+foldtest(PID) ->
+    FB = fun(L1, _,V,L2) -> L1 + L2 + V end,
+    PID ! {fold, 0, FB, self()},
     receive
         X -> X
     end.
