@@ -36,7 +36,7 @@ binary_tree(KK, VV, L, R) ->
             RV = receive {folded, RES2, _} -> RES2 end,
             
             PID ! {folded, FB(LV, KK, VV, RV), self()},
-            binary_tree(KK, VV, L, R)
+            Repeat()
     end.
 
 empty() -> spawn(?MODULE, empty_tree, []).
