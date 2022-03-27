@@ -23,7 +23,7 @@ empty_tree() ->
     receive
         {is_empty, PID} -> PID ! true, empty_tree();
         {get, _, PID} -> PID ! nothing, empty_tree();
-        {put, K, V, PID} -> PID ! done, spawn(?MODULE, binary_tree, [K, V, empty(), empty()])
+        {put, K, V, PID} -> PID ! done, binary_tree(K, V, empty(), empty())
     end.
 
 binary_tree(KK, VV, L, R) ->
@@ -52,4 +52,40 @@ binary_tree(KK, VV, L, R) ->
 empty() ->
     spawn(?MODULE, empty_tree, []).
 
+test1(PID) ->
+    PID ! {is_empty, self()},
+    receive
+        X -> X
+    end.
 
+test2(PID) ->
+    PID ! {put, a, 12, self()},
+    receive
+        X -> X
+    end.
+
+test3(PID) ->
+    PID ! {get, a, self()},
+    receive
+        X -> X
+    end.
+
+test4(PID) ->
+    PID ! {get, b, self()},
+    receive
+        X -> X
+    end.
+
+%% For testing
+%%
+%% X = main:empty().
+%% X ! {is_empty, self()}, receive L->L end.
+%% X ! {put, a, 120, self()}, receive L->L end.
+%% X ! {get, a, self()}, receive L->L end.
+%% X ! {get, b, self()}, receive L->L end.
+%%
+%% spawn(main, binary_tree, [a, 12, main:empty(), main:empty()]).     
+%% <0.76.0> ! {get, a, self()}, receive L->L end.
+%%
+%% X = main:empty().
+%% X ! {put, b, 21, self()}, receive L->L end.
