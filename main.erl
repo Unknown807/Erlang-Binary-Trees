@@ -29,10 +29,21 @@ binary_tree(KK, VV, L, R) ->
             end;
         {fold, FE, FB, PID} ->
             L ! {fold, FE, FB, self()},
-            LV = receive {folded, RES, _} -> RES end,
-
             R ! {fold, FE, FB, self()},
-            RV = receive {folded, RES2, _} -> RES2 end,
+
+            receive
+                {folded, RES, L} -> %% if left first then get right
+                    LV = RES,
+                    receive {folded, RES2, _} ->
+                        RV = RES2
+                    end;
+
+                {folded, RES2, R} -> %% if right first then get left
+                    RV = RES2,
+                    receive {folded, RES, _} ->
+                        LV = RES
+                    end
+            end,
             
             PID ! {folded, FB(LV, KK, VV, RV), self()},
             Repeat()
@@ -62,6 +73,7 @@ fold(T, FE, FB) ->
 %% Testing
 
 %% X=main:empty(), main:put(X,d,5), main:put(X,b,17), main:put(X,h,19), main:put(X,c,12).
+%% X=main:empty(), main:put(X,1,a), main:put(X,2,b), main:put(X,3,c), main:put(X,4,d), main:put(X,5,e), main:put(X,6,f), main:put(X,7,g), main:put(X,8,h), main:put(X,9,i), main:put(X,10,j).
 %% main:fold(X,0,fun(L,_,V,R)->L+V+R end).
 %% main:get(X, h).
 %% main:get(X, z).
